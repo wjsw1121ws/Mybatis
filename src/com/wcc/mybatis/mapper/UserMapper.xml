@@ -1,0 +1,146 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wcc.mybatis.mapper.UserMapper">
+
+    <!--查询用户以及用户关联的订单信息一对多-->
+    <resultMap id="user" type="User">
+        <id column="user_id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="address" property="address"/>
+        <!--注意此处的type类型,由于是一对多的关系,他的类型时集合,如果使用javaType-->
+        <!--<collection property="orders" javaType="list">-->
+        <collection property="orders" ofType="Orders">
+            <id column="id" property="id"/>
+            <result column="number" property="number"/>
+            <result column="createtime" property="createtime"/>
+        </collection>
+    </resultMap>
+    <select id="findAllUserAndOrder" resultMap="user">
+        select u.id,
+        u.username,
+        u.address,
+        o.number,
+        o.createtime
+        from user u
+        left join orders o
+        on u.id = o.user_id;
+    </select>
+
+    <!--根据id用户-->
+    <select id="findUserById" parameterType="Integer" resultType="com.wcc.mybatis.pojo.User">
+        <!--使用#{}占位符的方式,里面value的值可以随意写-->
+        select * from user where id = #{value}
+    </select>
+
+    <!--模糊用户名查询用户-->
+    <select id="findUserByUsername" parameterType="String" resultType="com.wcc.mybatis.pojo.User">
+        <!--使用字符串拼接的方式${}里面的值只能是value-->
+        <!--    select * from user where username like '%${value}%' -->
+        <!--使用占位符来写-->
+        select * from user where username like "%"#{v}"%"
+    </select>
+
+    <!--插入用户-->
+    <insert id="saveUser" parameterType="com.wcc.mybatis.pojo.User">
+        <!-- selectKey 标签实现主键返回 -->
+        <!-- keyColumn:主键对应的表中的哪一列 -->
+        <!-- keyProperty：主键对应的pojo中的哪一个属性 -->
+        <!-- order：设置在执行insert语句前执行查询id的sql，还是在执行insert语句之后执行查询id的sql -->
+        <!-- resultType：设置返回的id的类型 -->
+        <selectKey resultType="Integer" order="AFTER">
+            select LAST_INSET_ID from user
+        </selectKey>
+        insert into user (username, birthday, sex, address) values (#{username},#{birthday},#{sex},#{address})
+    </insert>
+
+    <!--更新用户-->
+    <update id="updateUser" parameterType="com.wcc.mybatis.pojo.User">
+        update user set
+        username = #{username}, birthday = #{birthday},sex = #{sex},address = #{address} where id = #{id}
+    </update>
+
+    <!--删除用户-->
+    <delete id="deleteUserById" parameterType="Integer">
+        delete from user where id = #{id}
+    </delete>
+
+    <!--使用pojo模糊用户名查询用户-->
+    <select id="findUserByQueryVo" parameterType="QueryVo" resultType="User">
+        <!--使用字符串拼接的方式${}里面的值只能是value-->
+        <!--    select * from user where username like '%${value}%' -->
+        <!--使用占位符来写-->
+        select * from user where username like "%"#{user.username}"%"
+    </select>
+
+    <!--查询所有用户信息-->
+    <select id="findAllCount" resultType="Integer">
+        select count(1) from user;
+    </select>
+
+    <!--提取sql片段-->
+    <sql id="selector">
+        select * from user
+    </sql>
+
+    <!--根据性别和用户名查询用户-->
+    <select id="finBySexAndUsername" resultType="User">
+        <!--select * from user-->
+        <include refid="selector"/>
+        <!--where标签去掉的是第一个条件的前and-->
+        <where>
+            <if test="sex != null and sex != ''">
+                and sex = #{sex}
+            </if>
+            <if test="username !=null and username != null">
+                and username like "%"#{username}"%"
+            </if>
+        </where>
+    </select>
+
+    <!--根据多个id查询用户信息-->
+    <select id="findUserByIds" parameterType="QueryVo" resultType="User">
+        <include refid="selector"/>
+        <where>
+            <!--在Query中封装list-->
+            <foreach collection="list" item="id" separator="," open="id in (" close=")">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+
+    <select id="findUserByIds1" parameterType="QueryVo" resultType="User">
+        <include refid="selector"/>
+        <where>
+            id in
+            <!--在QueryVo中封装Integer数组-->
+            <foreach collection="array" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+
+    <select id="findUserByIds2" parameterType="Integer" resultType="User">
+        <include refid="selector" />
+        <where>
+            id in
+            <!--设置入参为Integer数组,那么这里的collection要使用array-->
+            <foreach collection="array" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+    <select id="findUserByIds3" parameterType="Integer" resultType="User">
+        <include refid="selector" />
+        <where>
+            id in
+            <!--设置入参为Integer的集合,那么这里的collection要使用list-->
+            <foreach collection="list" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+
+
+
+</mapper>
